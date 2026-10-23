@@ -1,6 +1,6 @@
 # agent-honeypot
 
-A safety checkpoint for AI agents that land on a machine they weren't invited to.
+A honeypot flag for AI agents that land on a machine they weren't invited to.
 
 Drop a `flag.txt` where a visitor is likely to look. If a strange agent finds it, it gets a polite
 "you made it, now stop poking around and report back" — and it can sign a guestbook so you know who
