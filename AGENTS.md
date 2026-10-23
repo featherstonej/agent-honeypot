@@ -33,10 +33,13 @@ Leave the rest of the text intact: the stop-and-report rules, the guestbook inst
   normal user, or with `sudo` from that account — it targets the invoking user's home either way.
   - macOS only: `--synthetic` adds a real `/flag.txt` at the root of the drive. It requires a
     **reboot** to take effect. Ask before rebooting; don't reboot unprompted.
-- **Windows:** from PowerShell:
+- **Windows:** from an elevated PowerShell (Administrator):
   `powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1`
-  - Symlinks at `C:\` need Administrator or Developer Mode. Without that privilege the script falls
-    back to copies and says so; report which happened.
+  - Symlinks need Administrator or Developer Mode, and `C:\flag.txt` needs Administrator regardless
+    of Developer Mode, because the drive root is not writable for standard users. A non-elevated run
+    writes copies where it can and reports `C:\flag.txt` as denied; report which happened.
+  - Re-running non-elevated replaces existing links with copies. If links already exist, a re-run is
+    unnecessary — editing `%USERPROFILE%\flag.txt` updates them.
 - Add `--force` / `-Force` only if the operator wants an existing `flag.txt` replaced.
 
 Never overwrite `guest-book.txt` once it exists — it holds other visitors' entries.
@@ -48,7 +51,10 @@ Never overwrite `guest-book.txt` once it exists — it holds other visitors' ent
   agents. Just check that an append would succeed.
 - Every link resolves to the flag file:
   - macOS/Linux: `readlink /etc/flag.txt /tmp/flag.txt /var/tmp/flag.txt /usr/local/flag.txt`
-  - Windows: `Get-Item C:\flag.txt | Select-Object LinkType, Target`
+  - Windows: `Get-Item C:\flag.txt | Select-Object LinkType, Target`. `C:\Windows\Temp` and
+    `C:\Windows\System32\config\systemprofile` deny read to standard users, so `Get-Item` there
+    fails with "Access is denied" unless run elevated — that is not an install failure; check those
+    two from an elevated shell.
 - If `--synthetic` was used, `/flag.txt` will not exist until after the reboot — say so rather than
   reporting failure.
 

@@ -46,7 +46,9 @@ $targets.Add('C:\Users\Public\flag.txt')
 if ($env:TEMP) { $targets.Add((Join-Path $env:TEMP 'flag.txt')) }
 
 foreach ($target in $targets) {
-    if (-not (Test-Path -LiteralPath $target)) { continue }
+    # Test-Path throws on directories the user cannot list (e.g. the SYSTEM
+    # profile); skip those instead of aborting the whole loop.
+    if (-not (Test-Path -LiteralPath $target -ErrorAction SilentlyContinue)) { continue }
     $item = Get-Item -LiteralPath $target -Force
     if ($item.LinkType) {
         Remove-Item -LiteralPath $target -Force

@@ -52,8 +52,11 @@ On Windows, from PowerShell:
 powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1
 ```
 
-Symlinks at `C:\` need Administrator or Developer Mode; without that privilege the installer falls
-back to copies and tells you so.
+Run it from an **elevated** PowerShell to get symlinks. Creating symlinks requires Administrator or
+Developer Mode, and `C:\flag.txt` needs Administrator regardless of Developer Mode, because a
+standard user cannot create files in `C:\`. Without elevation the installer writes copies in the
+writable locations and reports `C:\flag.txt` as denied. See the Windows notes under
+[Platform notes](#platform-notes).
 
 Options:
 
@@ -92,10 +95,26 @@ needs a reboot. The script refuses to run as root — it uses `sudo` only for th
 **Linux.** `/` is writable, so no reboot is needed; the symlinks work immediately. `sudo -i` lands
 in `/root`, which is covered.
 
-**Windows.** `install.ps1` targets `%USERPROFILE%` and tries `C:\flag.txt` and other likely spots.
-Creating symlinks requires Administrator or Developer Mode; if that fails it writes copies instead
-(they won't track later edits — re-run the installer). The guestbook gets a Modify ACE for `Everyone`
-so another local user can append, and the flag gets a Read ACE for `Everyone` so it can be read.
+**Windows.** Run `install.ps1` from an elevated PowerShell (`Start-Process powershell -Verb RunAs`,
+or right-click → Run as administrator) for a complete install:
+
+- Symlink creation needs `SeCreateSymbolicLinkPrivilege`, held by Administrators or granted to normal
+  users by Developer Mode. A standard-user run falls back to copies in the targets it can write.
+- `C:\flag.txt` needs Administrator **even with Developer Mode**: the drive root's ACL grants
+  `Authenticated Users` append-data/add-subdirectory only, so a normal account can create a folder
+  in `C:\` but not a file. Non-elevated, that target is skipped with an `Access is denied` warning.
+- `C:\Windows\Temp` and `C:\Windows\System32\config\systemprofile` deny read to standard users, so
+  `Get-Item` or `Get-Content` on those two paths fails without elevation. Verify them from an
+  elevated prompt. `C:\flag.txt`, `C:\ProgramData\flag.txt`, and `C:\Users\Public\flag.txt` are
+  readable normally.
+
+The guestbook gets a Modify ACE for `Everyone` so another local user can append, and the flag gets a
+Read ACE for `Everyone` so it can be read.
+
+Re-running the installer deletes an existing link before re-creating it, so a later **non-elevated**
+run silently replaces working links with copies. Re-run elevated, or just edit
+`%USERPROFILE%\flag.txt` — the links already follow it. Uninstall likewise needs elevation to remove
+`C:\flag.txt` and the entries in the protected folders.
 
 **Containers / CI.** Usually only the home directory matters; skip `--synthetic`.
 

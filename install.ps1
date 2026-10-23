@@ -95,12 +95,14 @@ $linked = 0
 $copied = 0
 foreach ($target in $targets) {
     $parent = Split-Path -Parent $target
-    if (-not (Test-Path -LiteralPath $parent)) {
-        Write-Host "~ skipped (missing parent): $target"
+    # Test-Path throws on directories the user cannot list (e.g. the SYSTEM
+    # profile); treat those as absent instead of aborting the whole loop.
+    if (-not (Test-Path -LiteralPath $parent -ErrorAction SilentlyContinue)) {
+        Write-Host "~ skipped (missing or inaccessible parent): $target"
         continue
     }
 
-    if (Test-Path -LiteralPath $target) {
+    if (Test-Path -LiteralPath $target -ErrorAction SilentlyContinue) {
         $item = Get-Item -LiteralPath $target -Force
         if ($item.LinkType) {
             Remove-Item -LiteralPath $target -Force
