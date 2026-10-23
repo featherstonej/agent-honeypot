@@ -14,6 +14,9 @@ Idea from [@Nexuist](https://x.com/Nexuist/status/2113677652531761661):
 
 This repo is that idea, made portable and with a guestbook.
 
+If you are an AI agent installing this for someone, read `AGENTS.md` first — it tells you how to
+customise the own-agents list for their setup, install, verify, and report.
+
 ## What it does
 
 - Installs a canonical `~/flag.txt` that tells a visiting agent to stop discovery, avoid touching
@@ -43,9 +46,18 @@ On macOS, to also get a genuine `/flag.txt` at the root of the drive (requires a
 sudo reboot
 ```
 
+On Windows, from PowerShell:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1
+```
+
+Symlinks at `C:\` need Administrator or Developer Mode; without that privilege the installer falls
+back to copies and tells you so.
+
 Options:
 
-- `--force` — replace an existing `~/flag.txt` with this repo's version.
+- `--force` / `-Force` — replace an existing `flag.txt` with this repo's version.
 - `--synthetic` — macOS only; adds a `flag.txt` entry to `/etc/synthetic.conf`.
 - `-h`, `--help` — usage.
 
@@ -55,16 +67,20 @@ The guestbook is never overwritten once it exists.
 
 | Path | Purpose |
 |------|---------|
-| `~/flag.txt` | Canonical checkpoint text |
-| `~/guest-book.txt` | Append-only guestbook (mode `666`) |
+| `~/flag.txt` (`%USERPROFILE%\flag.txt` on Windows) | Canonical checkpoint text |
+| `~/guest-book.txt` (`%USERPROFILE%\guest-book.txt`) | Append-only guestbook, world-writable |
 | `/etc/flag.txt` | Symlink — classic recon target |
 | `/usr/local/flag.txt` | Symlink — Unix convention |
 | `/tmp/flag.txt` | Symlink — scratch space agents often check |
 | `/var/tmp/flag.txt` | Symlink — same, longer-lived |
 | `/var/root/flag.txt` (macOS) or `/root/flag.txt` (Linux) | Symlink for root logins, `sudo -i`, `su -` |
 | `/flag.txt` | Only with `--synthetic` on macOS, after a reboot |
+| `C:\flag.txt` | Windows: symlink (or copy) at the drive root |
+| `C:\ProgramData\flag.txt`, `C:\Windows\Temp\flag.txt`, `C:\Users\Public\flag.txt` | Windows: other likely recon spots |
+| `%TEMP%\flag.txt`, `C:\Windows\System32\config\systemprofile\flag.txt` | Windows: user temp and the SYSTEM profile |
 
-Every symlink points at the single canonical `~/flag.txt`, so editing one file updates every copy.
+Every link points at the single canonical flag file, so editing one file updates every copy. On
+Windows, where symlink creation may fall back to copies, re-run the installer after editing.
 
 ## Platform notes
 
@@ -75,6 +91,11 @@ needs a reboot. The script refuses to run as root — it uses `sudo` only for th
 
 **Linux.** `/` is writable, so no reboot is needed; the symlinks work immediately. `sudo -i` lands
 in `/root`, which is covered.
+
+**Windows.** `install.ps1` targets `%USERPROFILE%` and tries `C:\flag.txt` and other likely spots.
+Creating symlinks requires Administrator or Developer Mode; if that fails it writes copies instead
+(they won't track later edits — re-run the installer). The guestbook gets a Modify ACE for `Everyone`
+so another local user can append, and the flag gets a Read ACE for `Everyone` so it can be read.
 
 **Containers / CI.** Usually only the home directory matters; skip `--synthetic`.
 
@@ -101,16 +122,28 @@ determined visitor could rewrite it. That's acceptable for a guestbook.
 ./uninstall.sh --purge   # also delete the two files
 ```
 
+On Windows:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\uninstall.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File .\uninstall.ps1 -Purge
+```
+
+Windows copies are removed only if their content still matches the installed flag; unrelated files
+are left alone.
+
 On macOS, if you used `--synthetic`, remove the `flag.txt` line from `/etc/synthetic.conf` and
 reboot to drop `/flag.txt`.
 
 ## Caveats
 
 - Nothing *points* an agent at the flag. It only works if the agent lists the home directory, checks
-  `/etc` or `/tmp`, or follows a symlink. Pair it with whatever discovery your agent does naturally.
+  `/etc`, `C:\`, or a temp directory, or follows a link. Pair it with whatever discovery your agent
+  does naturally.
 - macOS cleans `/private/tmp` periodically, so `/tmp/flag.txt` may disappear after a while; re-run
   `./install.sh` to recreate it.
 - The flag text is a prompt-level request, not enforcement. A misbehaving agent can ignore it.
+- The guestbook is self-reported and world-writable. Entries are claims, not proof.
 
 ## License
 
