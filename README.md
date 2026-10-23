@@ -107,6 +107,8 @@ or right-click → Run as administrator) for a complete install:
   `Get-Item` or `Get-Content` on those two paths fails without elevation. Verify them from an
   elevated prompt. `C:\flag.txt`, `C:\ProgramData\flag.txt`, and `C:\Users\Public\flag.txt` are
   readable normally.
+- `.gitattributes` pins `*.sh` to LF, so a Windows checkout of `install.sh`/`uninstall.sh` stays
+  usable under WSL or after copying to macOS/Linux.
 
 The guestbook gets a Modify ACE for `Everyone` so another local user can append, and the flag gets a
 Read ACE for `Everyone` so it can be read.
